@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Offline mock prototype for a future AI full-stack website builder">
+  <title>fine-tune · Builder prototype</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="identity" href="/" aria-label="fine-tune home"><span class="logo">f.</span><span>fine-tune<span class="identity-sub">BUILD WORKSPACE</span></span></a>
+      <div class="nav-label">WORKSPACE</div>
+      <div class="nav-item active"><span aria-hidden="true">◈</span> Create project</div>
+      <div class="nav-label nav-label-secondary">DEVELOPMENT</div>
+      <div class="phase-note"><span class="phase-dot"></span> Phase 0 — Mock prototype</div>
+      <div class="sidebar-bottom"><strong>Prototype notice</strong><p>Nothing is saved or deployed. This interface uses deterministic templates, not an AI model.</p><a href="https://github.com/kawaho3/fine-tune" target="_blank" rel="noopener noreferrer">View source on GitHub ↗</a></div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar"><div><span class="breadcrumb">Workspace</span><span class="chevron">/</span><strong>New project</strong></div><span class="tag">OFFLINE MODE</span></header>
+      <div class="content">
+        <div class="intro"><div class="eyebrow">A new way to build is coming</div><h1>Your idea. A starting point.</h1><p>Describe a website and explore a simple static concept. This is a tested <strong>mock integration prototype</strong>, not a production full-stack AI builder.</p></div>
+        <div class="builder-layout">
+          <section class="prompt-panel" aria-labelledby="prompt-heading">
+            <div class="section-head"><h2 id="prompt-heading">Describe your idea</h2><span class="step-mark">01 / 02</span></div>
+            <form id="builder-form"><label for="prompt">What would you like to create?</label><textarea id="prompt" name="prompt" rows="7" minlength="10" maxlength="800" required placeholder="e.g. Build a cozy neighborhood cafe website with an elegant menu and welcoming atmosphere.">Build a modern portfolio for a designer, with selected projects and a contact section.</textarea><div class="helper-row"><span>10–800 characters · No account required</span><span id="prompt-count">0 / 800</span></div><button id="generate" type="submit" class="primary-button"><span aria-hidden="true">✦</span> Generate mock preview <span aria-hidden="true">↗</span></button></form>
+            <div class="example-label">TRY AN EXAMPLE</div><div class="examples"><button type="button" class="example" data-prompt="Create a stylish boutique store homepage with featured products and a welcoming brand.">Boutique store <span>↗</span></button><button type="button" class="example" data-prompt="Build a modern analytics dashboard with clear metrics, performance cards, and progress insights.">Analytics dashboard <span>↗</span></button><button type="button" class="example" data-prompt="Design a neighborhood cafe website with a seasonal menu, fresh coffee, and friendly atmosphere.">Neighborhood cafe <span>↗</span></button></div>
+            <div role="status" id="status" aria-live="polite" class="status-text">Ready to generate a local demo.</div>
+          </section>
+          <section class="preview-panel" aria-labelledby="preview-heading"><div class="section-head"><h2 id="preview-heading">Live concept</h2><span class="step-mark">02 / 02</span></div><div class="preview-toolbar"><div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div><span>Static preview · sandboxed iframe</span><button id="download" type="button" disabled>Download HTML ↓</button></div><div class="preview-frame"><iframe id="preview" title="Generated static website preview" sandbox="" referrerpolicy="no-referrer"></iframe></div><div class="preview-footer"><span id="template-label">No preview yet</span><span>Not an AI-generated production app</span></div></section>
+        </div>
+        <div class="below-grid"><section class="info-card"><h3>What this prototype validates</h3><p>A request flows through the browser, a small HTTP API, and a replaceable deterministic mock generator. The output can be previewed and downloaded.</p><div class="small-steps" id="plan" aria-live="polite"><span>Generate a preview to see the mock plan.</span></div></section><section class="info-card warning-card"><h3>What it does not do yet</h3><p>No live LLM, agent tools, database, backend generation, secure code execution, authentication, or deployment. Those require later milestone PRs and security reviews.</p><a href="https://github.com/kawaho3/fine-tune/blob/main/docs/ROADMAP.md" target="_blank" rel="noopener noreferrer">Read the project roadmap ↗</a></section></div>
+        <footer class="footer">fine-tune · Open development prototype · Local-only by default</footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "fine-tune",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline-first mock application builder scaffold",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "node apps/api/src/server.mjs",
+    "start": "node apps/api/src/server.mjs",
+    "test": "node --test",
+    "check": "npm test"
+  }
+}

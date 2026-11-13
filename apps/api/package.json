@@ -1,0 +1,9 @@
+{
+  "name": "@fine-tune/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fine-tune/core": "0.1.0"
+  }
+}

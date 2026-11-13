@@ -1,6 +1,6 @@
 # Contributing to fine-tune
 
-Thanks for helping build an independent AI full-stack web-app builder. **The repository currently documents a proposed product, not a finished app.**
+Thanks for helping build an independent AI full-stack web-app builder. **The repository includes a local deterministic mock demo and product specification, but not a finished AI app builder.**
 
 ## Before contributing
 
@@ -23,7 +23,7 @@ Thanks for helping build an independent AI full-stack web-app builder. **The rep
 1. Create or select an issue with explicit acceptance checks.
 2. Create a dedicated feature branch.
 3. Implement the narrow task and add reproducible tests.
-4. Run local CI/lint/test commands **once the app scaffold defines them**. There are no app install/run commands yet.
+4. Run `npm ci --ignore-scripts` and `npm test` (Node.js 22+), and report results. See [MOCK_PROTOTYPE](docs/MOCK_PROTOTYPE.md) for the local demo.
 5. Open a PR using .github/pull_request_template.md.
 6. Resolve review feedback and document the actual implementation status.
 

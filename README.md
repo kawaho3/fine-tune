@@ -1,6 +1,6 @@
 # fine-tune — Independent AI Full-Stack App Builder
 
-> **Status: planning / documentation foundation (13 November 2026).** This repository does **not yet** contain a running application, trained model, cloud infrastructure, or verified integrations. It is the source of truth for the product we intend to build.
+> **Status: Phase-0 local mock prototype (13 November 2026).** This repository now includes a runnable, no-API-cost **deterministic template demo** and tests. It does **not** yet include a real AI agent, fine-tuned model, secure application sandbox, production hosting, or verified third-party integrations.
 
 ## Our mission
 
@@ -44,7 +44,15 @@ All dependencies require **license, security, compatibility, and operational rev
 
 ## Repository right now
 
-This repository started with just a README. Our first deliverable is an honest, reusable specification and contribution workflow. There is **no working application or install command yet**. Follow the [roadmap](docs/ROADMAP.md) and the [open issues](https://github.com/kawaho3/fine-tune/issues) to build the first vertical slice. Do not report unimplemented features as complete.
+The first implementation milestone is a **Node.js 22+ offline mock demo** that connects a browser form to an HTTP endpoint and deterministic HTML generator. It is not an AI agent or a full-stack application builder. It requires no paid APIs or third-party npm dependencies.
+
+```bash
+npm ci --ignore-scripts
+npm test
+npm run dev
+```
+
+Open http://127.0.0.1:3000 to try it. See [mock prototype guide](docs/MOCK_PROTOTYPE.md) for architecture, endpoints, limitations, and next steps. No untrusted user code is executed, projects are not persisted, and the UI downloads only a static HTML file. Follow the [roadmap](docs/ROADMAP.md) and [open issues](https://github.com/kawaho3/fine-tune/issues) for the real agent and sandbox work.
 
 ## Development principles
 
