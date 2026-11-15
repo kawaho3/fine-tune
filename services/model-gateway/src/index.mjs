@@ -37,7 +37,13 @@ function requestShape(request) {
     }
     budget = { maxOutputTokens: int(request.budget.maxOutputTokens, 'budget.maxOutputTokens', 1, 65_536) };
   }
-  return { messages: clean, model: request?.model, options: request?.options, budget };
+  if (request?.model !== undefined && (typeof request.model !== 'string' || !request.model.trim())) {
+    throw new ModelGatewayError('model must be a non-empty string when provided.', { code: 'invalid_request', provider: 'gateway' });
+  }
+  if (request?.options !== undefined && (!request.options || typeof request.options !== 'object' || Array.isArray(request.options))) {
+    throw new ModelGatewayError('options must be an object when provided.', { code: 'invalid_request', provider: 'gateway' });
+  }
+  return { messages: clean, model: request?.model?.trim(), options: request?.options, budget };
 }
 
 function abortContext(external, timeoutMs) {
@@ -48,6 +54,44 @@ function abortContext(external, timeoutMs) {
   const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   timer.unref?.();
   return { signal: controller.signal, timedOut: () => timedOut, cleanup() { clearTimeout(timer); external?.removeEventListener('abort', onAbort); } };
+}
+
+function abortError() {
+  return new DOMException('Aborted', 'AbortError');
+}
+
+async function waitForSignal(operation, signal) {
+  if (signal?.aborted) throw abortError();
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(abortError());
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    Promise.resolve()
+      .then(() => {
+        if (signal?.aborted) throw abortError();
+        return operation();
+      })
+      .then(
+        (value) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve(value);
+        },
+        (error) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          reject(error);
+        },
+      );
+  });
 }
 
 function normalized(error, provider, external, timedOut) {
@@ -62,9 +106,24 @@ async function delay(ms, signal) {
   if (!ms) return;
   await new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(new ModelGatewayError('Model request was cancelled.', { code: 'cancelled', provider: 'gateway' }));
-    const timer = setTimeout(resolve, ms);
+    let settled = false;
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      cleanup();
+      reject(new ModelGatewayError('Model request was cancelled.', { code: 'cancelled', provider: 'gateway' }));
+    };
+    const timer = setTimeout(finish, ms);
     timer.unref?.();
-    signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new ModelGatewayError('Model request was cancelled.', { code: 'cancelled', provider: 'gateway' })); }, { once: true });
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 
@@ -174,7 +233,7 @@ export class ModelGateway {
     for (let attempt = 1; attempt <= this.maxRetries + 1; attempt += 1) {
       const abort = abortContext(request?.signal, this.timeoutMs); const start = performance.now();
       try {
-        const result = await this.provider.generate({ ...payload, signal: abort.signal });
+        const result = await waitForSignal(() => this.provider.generate({ ...payload, signal: abort.signal }), abort.signal);
         return { text: result.text, provider: this.provider.name, model: result.model ?? payload.model ?? null, usage: result.usage ?? null, latencyMs: Math.max(0, Math.round((performance.now() - start) * 100) / 100), attempts: attempt };
       } catch (error) {
         const out = normalized(error, this.provider.name, request?.signal, abort.timedOut());
@@ -184,15 +243,44 @@ export class ModelGateway {
     }
   }
   async *stream(request) {
-    const payload = requestShape(request); const abort = abortContext(request?.signal, this.timeoutMs); const start = performance.now(); let done = false;
+    const payload = requestShape(request);
+    const abort = abortContext(request?.signal, this.timeoutMs);
+    const start = performance.now();
+    let iterator;
+    let completed = false;
     try {
-      for await (const event of this.provider.stream({ ...payload, signal: abort.signal })) {
-        if (event.type === 'done') { done = true; yield { ...event, provider: this.provider.name, latencyMs: Math.max(0, Math.round((performance.now() - start) * 100) / 100), attempts: 1 }; }
-        else yield { ...event, provider: this.provider.name };
+      const iterable = this.provider.stream({ ...payload, signal: abort.signal });
+      if (!iterable || typeof iterable[Symbol.asyncIterator] !== 'function') {
+        throw new ModelGatewayError('Provider stream() must return an async iterable.', { code: 'invalid_provider_response', provider: this.provider.name });
       }
-      if (!done) throw new ModelGatewayError('Model stream ended without a completion event.', { code: 'invalid_provider_response', provider: this.provider.name });
-    } catch (error) { throw normalized(error, this.provider.name, request?.signal, abort.timedOut()); }
-    finally { abort.cleanup(); }
+      iterator = iterable[Symbol.asyncIterator]();
+      while (true) {
+        const next = await waitForSignal(() => iterator.next(), abort.signal);
+        if (next.done) break;
+        const event = next.value;
+        if (!event || (event.type !== 'text-delta' && event.type !== 'done')) {
+          throw new ModelGatewayError('Model provider returned an invalid stream event.', { code: 'invalid_provider_response', provider: this.provider.name });
+        }
+        if (event.type === 'text-delta') {
+          if (typeof event.delta !== 'string') {
+            throw new ModelGatewayError('Model provider returned a non-text stream delta.', { code: 'invalid_provider_response', provider: this.provider.name });
+          }
+          yield { ...event, provider: this.provider.name };
+          continue;
+        }
+        completed = true;
+        yield { ...event, provider: this.provider.name, latencyMs: Math.max(0, Math.round((performance.now() - start) * 100) / 100), attempts: 1 };
+        break;
+      }
+      if (!completed) throw new ModelGatewayError('Model stream ended without a completion event.', { code: 'invalid_provider_response', provider: this.provider.name });
+    } catch (error) {
+      throw normalized(error, this.provider.name, request?.signal, abort.timedOut());
+    } finally {
+      abort.cleanup();
+      if (iterator && typeof iterator.return === 'function') {
+        Promise.resolve().then(() => iterator.return()).catch(() => {});
+      }
+    }
   }
 }
 
