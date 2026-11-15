@@ -37,9 +37,9 @@ Implemented `services/model-gateway` as a replaceable inference boundary:
 
 Environment: Node.js v22.16.0, npm 10.9.2.
 
-- Focused model-gateway suite: **9 passed, 0 failed**.
+- Focused model-gateway suite: **10 passed, 0 failed**.
 - Offline workspace install check: `npm ci --ignore-scripts --offline` succeeded in the reconstructed workspace with zero new third-party npm packages.
-- A live Ollama server/model was **not available and was not downloaded**, so live inference is not claimed as validated.
+- A live Ollama server/model was **not available and was not downloaded**, so live inference is not claimed as validated. The tenth regression test verifies that the gateway timeout still fires when a custom provider ignores the abort signal.
 - The complete repository suite must still pass GitHub Actions on this feature branch before merge.
 
 ## Upstream research recorded for the next boundaries
