@@ -60,12 +60,19 @@ Phase-0 is partly complete; the broad dependency/license audit and final workspa
 
 Sandbox security precedes executing untrusted apps; authentication precedes public shared projects; observability precedes commercial beta; baseline evaluation precedes fine-tuning. No phase needs to wait for an entire competitor feature list. Plan work in small independent issues.
 
-## Immediate task order
+## Prioritized implementation checklist
 
-1. Merge the model-gateway foundation only after CI passes.
-2. Prove the OpenHands adapter boundary with deterministic fixtures.
-3. Choose and test one restricted workspace implementation.
-4. Connect agent + workspace + Playwright into the first real vertical slice.
-5. Build the held-out benchmark suite before model fine-tuning.
+| Task | Description | Depends on | Primary files/modules | Expected result / acceptance | Tests | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| FT-001 | Verify the monorepo baseline and CI | — | root workspaces, `.github/workflows/ci.yml` | clean install + existing mock/API tests pass | `npm ci --ignore-scripts`, `npm test` | **Done**; scaffold merged in PR #8 |
+| FT-002 | Provider-independent model gateway | FT-001 | `services/model-gateway`, env config, ADR 0004 | deterministic mock; opt-in Ollama; timeout/cancel/retry/usage/stream contracts; no mandatory paid API | unit/contract + full repository CI | **In review** in PR #9 |
+| FT-003 | OpenHands adapter compatibility spike | FT-002 | future `services/agent`, schemas, integration tests | one replaceable session interface can plan/emit events against deterministic fixtures; SDK details stay inside adapter | adapter contract tests; cancellation/error fixture | **Next** |
+| FT-004 | Select one restricted workspace strategy | FT-003 | future `services/sandbox`, ADR, security tests | create/write/read/run/timeout/artifact/cleanup with explicit isolation policy; choose OpenHands workspace or OpenSandbox based on evidence | lifecycle + traversal + timeout + isolation fixtures | Not started |
+| FT-005 | Deterministic prompt → build vertical slice | FT-003, FT-004 | agent, sandbox, templates, API | fixture creates a real minimal app, runs build/backend checks and exports complete source | integration tests incl. intentionally broken fixture | Not started |
+| FT-006 | Browser verification and preview boundary | FT-005 | Playwright, future preview service | generated app is reachable only through reviewed preview boundary and required user flow passes | Playwright smoke + preview-origin/security tests | Not started |
+| FT-007 | Held-out benchmark harness | FT-005 | `training/evaluation` or test harness | versioned tasks and measurable build/functional/repair/latency/cost results | reproducible benchmark fixture in CI | Not started |
+| FT-008 | Product editing/data layer | FT-006 | modern web UI, Monaco, PostgreSQL/auth after review | persistent projects, diffs/history and CRUD scenario without breaking prior tests | unit/integration/e2e | Later |
+| FT-009 | Commercial operations | FT-008 | tenant authz, quotas, deployment, audit/billing | controlled multi-tenant beta gates with operational/security review | authz, backup/recovery, abuse and deployment tests | Later |
+| FT-010 | Fine-tuning experiment | FT-007 | datasets/finetune/evaluation | adapter is adopted only if held-out metrics improve vs. baseline | train/validation/held-out evaluation | Later |
 
-These are engineering gates, not launch-date commitments.
+These are engineering gates, not launch-date commitments. Each task must update [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) with actual evidence before it is marked done.
