@@ -80,6 +80,29 @@ test('timeout and caller cancellation produce structured errors and are not retr
   await assert.rejects(() => createModelGateway().generate({ messages, signal: controller.signal }), (error) => error.code === 'cancelled');
 });
 
+test('gateway timeout is enforced even when a custom provider ignores the abort signal', async () => {
+  const provider = {
+    name: 'noncooperative-fixture',
+    async generate() {
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      return { text: 'too late', model: 'fixture', usage: null };
+    },
+    async *stream() {
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      yield { type: 'text-delta', delta: 'too late' };
+      yield { type: 'done', model: 'fixture', usage: null };
+    },
+  };
+  const gateway = new ModelGateway(provider, { timeoutMs: 5, maxRetries: 0 });
+
+  await assert.rejects(() => gateway.generate({ messages }), (error) => error.code === 'timeout');
+  await assert.rejects(async () => {
+    for await (const _event of gateway.stream({ messages })) {
+      // The gateway must time out before this non-cooperative provider emits.
+    }
+  }, (error) => error.code === 'timeout');
+});
+
 test('Ollama streaming parses NDJSON and exposes final usage', async () => {
   const body = [JSON.stringify({ message: { content: 'hel' }, done: false }), JSON.stringify({ message: { content: 'lo' }, done: false }), JSON.stringify({ done: true, prompt_eval_count: 2, eval_count: 2 })].join('\n') + '\n';
   const gateway = new ModelGateway(new OllamaModelProvider({ model: 'coder', fetchImpl: async (_url, init) => {
