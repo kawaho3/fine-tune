@@ -1,10 +1,10 @@
 # fine-tune — Independent AI Full-Stack App Builder
 
-> **Status: Phase-0 local mock prototype (13 November 2026).** This repository now includes a runnable, no-API-cost **deterministic template demo** and tests. It does **not** yet include a real AI agent, fine-tuned model, secure application sandbox, production hosting, or verified third-party integrations.
+> **Status: Phase-0 mock + Phase-1 model-gateway foundation (16 November 2026).** The repository includes a runnable deterministic template demo and a provider-independent model gateway with deterministic mock and opt-in local Ollama adapters. It does **not** yet include a working coding agent, secure generated-code sandbox, full-stack generation pipeline, production hosting, or a verified live model run.
 
 ## Our mission
 
-Build an independently operated, commercial AI platform that takes a natural-language request and creates, edits, tests, previews, and ultimately deploys **working full-stack web applications**. We aim to compete with the user experience and capabilities of **Lovable, Replit Agent, and Bolt.new**. “No. 1” is our ambition, not a verified market ranking or a performance claim.
+Build an independently operated, commercial AI platform that takes a natural-language request and creates, edits, tests, previews, and ultimately deploys **working full-stack web applications**. We aim to compete with the user experience and capabilities of **Lovable, Replit Agent, and Bolt.new**. “No. 1” is our ambition, not a verified market ranking or performance claim.
 
 The product should offer:
 - End-to-end website and application generation: frontend, backend, database, auth, and tests.
@@ -29,23 +29,23 @@ The product should offer:
 | Security and ops | [Security architecture](docs/SECURITY_ARCHITECTURE.md), [costs](docs/COSTS_AND_OPERATIONS.md) |
 | Contributors | [Onboarding](docs/DEVELOPER_ONBOARDING.md), [CONTRIBUTING.md](CONTRIBUTING.md) |
 
-## Architectural direction (proposed, not implemented)
+## Architecture direction
 
-One **original monorepo**, using selected third-party projects as separately versioned libraries/services. Do **not** concatenate entire copies of bolt.diy, Dyad, OpenHands, Onlook, and other products.
+Use one **original monorepo** with separately versioned, replaceable integrations. Do **not** concatenate entire copies of bolt.diy, Dyad, OpenHands, Onlook, or other products.
 
-- **Frontend:** Next.js / TypeScript, shadcn/ui, Monaco; evaluate Puck vs. Onlook approaches for visual editing.
-- **Application backend:** FastAPI or appropriately separated TypeScript services, PostgreSQL, job queue.
-- **Agent:** OpenHands Software Agent SDK as first candidate; retain a replaceable adapter.
-- **Runtime:** securely isolated per-project workspaces, Playwright tests and preview proxy.
-- **Models:** provider abstraction; Ollama locally, vLLM where appropriate; future QLoRA adapter.
-- **Deployment:** review Coolify for user-approved deployments, separate from agent execution.
-- **Observability:** OpenTelemetry and optional tracing/evaluation system.
+- **Current UI/API:** Node.js 22 local mock builder under `apps/`.
+- **Current model boundary:** `services/model-gateway`, deterministic mock by default and local Ollama opt-in.
+- **Agent candidate:** OpenHands Software Agent SDK behind our own adapter.
+- **Runtime candidate:** compare OpenHands workspace behavior with OpenSandbox and select one primary execution path.
+- **Testing:** Node unit/API tests now; Playwright required for the first real generated-app vertical slice.
+- **Future product UI/data:** modern web UI, Monaco, PostgreSQL and reviewed auth once the core generation/execution workflow is working.
+- **Deployment/training:** later gates, not prerequisites for the first vertical slice.
 
-All dependencies require **license, security, compatibility, and operational reviews** before adoption; see the [reuse audit](docs/REUSE_AUDIT.md).
+See [architecture](docs/ARCHITECTURE.md), [reuse audit](docs/REUSE_AUDIT.md), and [ADR 0004](docs/decisions/0004-model-gateway-boundary.md).
 
-## Repository right now
+## Run the current local mock
 
-The first implementation milestone is a **Node.js 22+ offline mock demo** that connects a browser form to an HTTP endpoint and deterministic HTML generator. It is not an AI agent or a full-stack application builder. It requires no paid APIs or third-party npm dependencies.
+Requirements: Node.js 22+ and npm. The current repository adds no third-party npm package for the model gateway.
 
 ```bash
 npm ci --ignore-scripts
@@ -53,7 +53,13 @@ npm test
 npm run dev
 ```
 
-Open http://127.0.0.1:3000 to try it. See [mock prototype guide](docs/MOCK_PROTOTYPE.md) for architecture, endpoints, limitations, and next steps. No untrusted user code is executed, projects are not persisted, and the UI downloads only a static HTML file. Follow the [roadmap](docs/ROADMAP.md) and [open issues](https://github.com/kawaho3/fine-tune/issues) for the real agent and sandbox work.
+Open http://127.0.0.1:3000. The browser demo still uses a deterministic static generator; it is **not yet connected** to the model gateway.
+
+## Model gateway
+
+The model gateway exists so future agent code is not coupled directly to a provider. CI and ordinary tests use the deterministic mock. Local Ollama is optional and must be configured explicitly; the repository does not download a model.
+
+Example settings are in `.env.example`. Ollama defaults to loopback-only endpoints, and enabling a remote endpoint requires an explicit operator setting. A live Ollama inference has not yet been verified by this repository.
 
 ## Development principles
 
@@ -61,18 +67,18 @@ Open http://127.0.0.1:3000 to try it. See [mock prototype guide](docs/MOCK_PROTO
 2. **One owner-controlled product.** Our original business logic, UX, orchestration and product data remain modular and independently replaceable.
 3. **Build and verify small slices.** Each milestone ships runnable code plus reproducible tests; no “implemented” claims without evidence.
 4. **Security from day one.** Untrusted generated code never runs with host or production privileges.
-5. **Credit efficiency.** Use Codex for high-value custom code; avoid repeated rewrites of commodity components.
+5. **Credit efficiency.** Spend coding work on missing product logic instead of rewriting mature utilities.
 6. **Model independence.** Never couple the core product to a single paid model provider.
 7. **Differentiate on reliability.** Measure successful builds, working workflows, repair rate, latency, and user cost—not feature count alone.
 
 ## Ownership, visibility and license
 
-This GitHub repository is **currently public**. A public repository is not the same as a private company repository. No project-wide license has been chosen or granted here; review [ownership and licenses](docs/OWNERSHIP_AND_LICENSES.md) before copying any code or accepting substantial contributions. Never commit credentials, training examples containing private customer code, or secrets.
+This GitHub repository is **currently public**. Public visibility is not the same as a license grant. No project-wide license has been chosen or granted here; review [ownership and licenses](docs/OWNERSHIP_AND_LICENSES.md) before copying code or accepting substantial contributions. Never commit credentials, private customer code, or secrets.
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md). Start with the documentation and first engineering issues. Codex should read [AGENTS.md](AGENTS.md) before altering project files.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). Prefer small reviewable PRs with executable evidence.
 
 ---
 
-*Documentation baseline created 13 November 2026. This is a living engineering plan, not a statement of completed implementation.*
+*This is a living engineering repository. Planned capabilities are not reported as implemented until verified.*
