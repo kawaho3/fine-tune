@@ -40,7 +40,7 @@ Environment: Node.js v22.16.0, npm 10.9.2.
 - Focused model-gateway suite: **10 passed, 0 failed**.
 - Offline workspace install check: `npm ci --ignore-scripts --offline` succeeded in the reconstructed workspace with zero new third-party npm packages.
 - A live Ollama server/model was **not available and was not downloaded**, so live inference is not claimed as validated. The tenth regression test verifies that the gateway timeout still fires when a custom provider ignores the abort signal.
-- The complete repository suite must still pass GitHub Actions on this feature branch before merge.
+- GitHub Actions run #6 on implementation commit `1945732c9bc0d4641dbd81bb8b27ce744c30e3ce` completed successfully on Node v22.23.4: `npm ci --ignore-scripts` passed and the complete `npm test` run reported **22 passed, 0 failed**. Subsequent documentation/CI-maintenance commits must also remain green before merge.
 
 ## Upstream research recorded for the next boundaries
 
@@ -59,7 +59,7 @@ See [REUSE_AUDIT.md](REUSE_AUDIT.md).
 
 ## Next verifiable milestone
 
-1. Let CI verify this model-gateway PR and fix any regression.
+1. Keep PR #9 green after the final documentation and pinned-action CI update.
 2. Perform the narrow OpenHands adapter compatibility spike without exposing SDK internals to product code.
 3. Compare the OpenHands workspace path against OpenSandbox with an executable restricted-workspace fixture before choosing one production execution layer.
 4. Continue toward prompt → plan → generated files → isolated build/test → preview → source export.
