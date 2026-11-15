@@ -1,46 +1,72 @@
 # Implementation Status
 
-**As of: 13 November 2026**
+**As of: 16 November 2026**
 
-## Verified facts
+## Verified repository state
 
-- The GitHub repository **kawaho3/fine-tune** exists. Its first merged milestone was documentation-only; a Phase-0 mock scaffold is now proposed in a feature PR.
-- The repository is **public** as of this documentation baseline.
-- Product goals, proposed architecture, competitor references, reusable technologies and engineering milestones have been discussed and documented here.
+- The GitHub repository **kawaho3/fine-tune** is public and its default branch is `main`.
+- Current audited `main` commit before this feature branch: `d56247404d690668901228e7e9ade3e479748de7`.
+- The Phase-0 deterministic mock scaffold was merged in commit `ec181c990d5b90d9048fe928e90b7a3fa333be14` (PR #8).
+- No open pull requests were present when this milestone started. Issues #1–#7 remained open.
+- The latest audited `main` commit did not expose a completed GitHub Actions run through the available integration, so current-main CI is **not claimed as verified** here.
 
-## Completed in this documentation milestone
+## Working Phase-0 scaffold
 
-- Project overview and charter.
-- Proposed architecture, requirements, feature inventory and roadmap.
-- Initial dependency candidate list and audit checklist.
-- Model training/evaluation strategy, security and cost guidelines.
-- Developer/Codex onboarding instructions and collaboration templates.
-
-## Working Phase-0 scaffold (local validation)
-
-- Original npm workspace with `apps/api`, `apps/web`, and `packages/core` (Node.js 22+, zero external npm dependencies).
-- Local-only HTTP server serves a static builder interface; `POST /api/generate` returns an explicitly labeled deterministic HTML template, plan, and README without an LLM or shell commands.
+- Original npm workspace with `apps/api`, `apps/web`, and `packages/core` (Node.js 22+).
+- Local HTTP server serves a static builder interface; `POST /api/generate` returns an explicitly labeled deterministic HTML template, plan, and README without an LLM or shell commands.
 - Sandboxed `iframe srcdoc` static preview, single HTML-file download, validation and HTTP security headers.
-- `npm ci --offline --ignore-scripts` and `npm test` executed locally: **12 tests passed, 0 failed** on Node v22.16.0. Tests cover generator, escaping, API, and basic server behavior.
-- CI workflow added, but GitHub Actions results and visual browser interaction were **not verified** when this PR was authored. A headless browser screenshot attempt did not complete in the local environment.
-- Implementation guide: [MOCK_PROTOTYPE.md](MOCK_PROTOTYPE.md).
+- The scaffold PR recorded **12 tests passed, 0 failed** on Node v22.16.0. That evidence predates this branch and should not be confused with a new full-suite run.
+
+## Phase-1 foundation in this feature branch
+
+Branch: `feat/model-gateway-foundation`
+
+Implemented `services/model-gateway` as a replaceable inference boundary:
+
+- Deterministic mock provider remains the default for offline tests and CI.
+- Opt-in Ollama `/api/chat` provider using the Node.js 22 native `fetch` API; no extra npm runtime dependency.
+- Request/message validation and bounded output-token budgets.
+- Structured provider errors with cancellation and timeout handling.
+- Bounded retries for retryable **non-streaming** provider failures.
+- NDJSON streaming support without replaying a partially emitted stream.
+- Provider-reported token usage mapping, latency, and attempt counts.
+- Ollama endpoints are restricted to loopback hosts by default; remote endpoints require explicit operator configuration and credentials in endpoint URLs are rejected.
+- Safe example environment settings and ADR 0004 document the boundary.
+
+### Local verification for the new model gateway
+
+Environment: Node.js v22.16.0, npm 10.9.2.
+
+- Focused model-gateway suite: **9 passed, 0 failed**.
+- Offline workspace install check: `npm ci --ignore-scripts --offline` succeeded in the reconstructed workspace with zero new third-party npm packages.
+- A live Ollama server/model was **not available and was not downloaded**, so live inference is not claimed as validated.
+- The complete repository suite must still pass GitHub Actions on this feature branch before merge.
+
+## Upstream research recorded for the next boundaries
+
+- OpenHands Software Agent SDK `v1.62.0`: MIT-licensed primary coding-agent candidate. The SDK is Python 3.12+; its agent server exposes a REST/WebSocket boundary. We will integrate it only behind our own replaceable agent adapter after an executable compatibility spike.
+- OpenSandbox `release-1.2.0`: Apache-2.0 primary isolated-workspace candidate. It exposes TypeScript/JavaScript and Python SDKs plus lifecycle, file, command, resource and network controls.
+- Direct OpenHands ↔ OpenSandbox compatibility has **not** been proven. We will not stack two overlapping workspace runtimes until a small integration/security test justifies it.
+
+See [REUSE_AUDIT.md](REUSE_AUDIT.md).
 
 ## NOT implemented or validated
 
-- No Next.js application, production API backend, PostgreSQL schema, AI agent runtime, secure code-execution sandbox, authenticated hosted preview, or deployment. The static local preview is a mock.
-- No integrated OpenHands, Ollama, vLLM, Monaco, Puck, Better Auth, Coolify or other candidate library.
-- No full-stack generated application, verified build of generated code, browser E2E suite, or confirmed GitHub Actions results. Node unit/API tests only.
-- No trained model, fine-tuning dataset, public SaaS, user auth or billing.
-- No completed legal/license audit, security audit, pricing benchmark or competitor feature parity.
-- No approved project-wide distribution license.
+- No production AI coding agent, OpenHands adapter, secure application sandbox, PostgreSQL persistence, authenticated preview proxy, or deployment pipeline.
+- The existing `/api/generate` mock builder is not yet wired to the model gateway.
+- No real full-stack generated application has been built, run, browser-tested, repaired, previewed, and exported through the target pipeline.
+- No trained model, fine-tuning dataset, public SaaS, user auth, billing, completed legal review, security audit, or project-wide distribution license.
 
 ## Next verifiable milestone
 
-**Phase 0 continuation:** verify upstream repository/license choices, review the mock scaffold PR and its GitHub Actions test, record architecture decisions, then build the **Phase 1 real-agent vertical slice** with a reviewed sandbox, real build/run, tests, and full source export.
+1. Let CI verify this model-gateway PR and fix any regression.
+2. Perform the narrow OpenHands adapter compatibility spike without exposing SDK internals to product code.
+3. Compare the OpenHands workspace path against OpenSandbox with an executable restricted-workspace fixture before choosing one production execution layer.
+4. Continue toward prompt → plan → generated files → isolated build/test → preview → source export.
 
 ## Rules for keeping this document accurate
 
-- A feature becomes “implemented” only with links to merged code, executable verification steps, and test results.
-- Record current branch/commit for demonstrations, tool versions and limitations.
+- A feature becomes “implemented” only with links to code, executable verification steps, and test results.
+- Record branch/commit, tool versions, skipped checks, and limitations.
 - Do not inflate progress using UI mockups, unexecuted generated code, or assumed model capabilities.
-- Update the as-of date and status after each merged milestone.
+- Update this document after every material milestone.
