@@ -1,6 +1,6 @@
 # Architecture — Modular Monorepo
 
-**Status:** Phase-0 browser/API/core mock is implemented. A provider-independent model gateway is implemented on `feat/model-gateway-foundation`. Agent, production sandbox, persistence, authenticated previews, deployment, training and most target UI services remain design proposals until verified.
+**Status:** Phase-0 browser/API/core mock and the provider-independent model gateway are merged. A thin OpenHands Agent Server adapter compatibility spike exists on `feat/openhands-agent-adapter`. Production sandbox, persistence, authenticated previews, deployment, training and most target UI services remain proposals until verified.
 
 ## Fundamental choice
 
@@ -14,7 +14,8 @@ One original product repository with clean boundaries and pinned third-party dep
     packages/
       core/                 # prompt validation + deterministic static generator
     services/
-      model-gateway/        # provider-independent mock + Ollama boundary (feature branch)
+      agent/                # OpenHands Agent Server adapter (feature branch compatibility spike)
+      model-gateway/        # merged provider-independent mock + Ollama boundary
     docs/
     .github/workflows/
 
@@ -89,7 +90,7 @@ ADR 0004 accepts a replaceable model boundary and local Ollama as the first live
 
 ### Coding agent
 
-OpenHands Software Agent SDK `v1.62.0` is the primary adapter candidate. It requires Python 3.12+. Its separately packaged agent server exposes REST/WebSocket interfaces, which allows the current Node product shell to remain Node while the first compatibility spike determines whether a Python process/service is actually necessary.
+OpenHands Software Agent SDK `v1.62.0` is the primary agent candidate. The first adapter uses the Agent Server REST contract for bounded conversation lifecycle operations while keeping OpenHands-specific details inside `services/agent`. The real Agent Server still requires its Python runtime; our product API does not need to embed that Python implementation. A real-server compatibility test remains required before this is treated as a working agent integration.
 
 ### Execution workspace
 
@@ -118,4 +119,4 @@ Model hallucinations; code that builds but does not work; dependency installatio
 
 ## Design records
 
-[0001 Monorepo and reuse-first](decisions/0001-monorepo-reuse-first.md), [0002 single-agent first](decisions/0002-one-agent-first.md), [0003 sandbox boundary](decisions/0003-sandbox-boundary.md), and [0004 model gateway boundary](decisions/0004-model-gateway-boundary.md).
+[0001 Monorepo and reuse-first](decisions/0001-monorepo-reuse-first.md), [0002 single-agent first](decisions/0002-one-agent-first.md), [0003 sandbox boundary](decisions/0003-sandbox-boundary.md), [0004 model gateway boundary](decisions/0004-model-gateway-boundary.md), and [0005 OpenHands adapter boundary](decisions/0005-openhands-agent-adapter.md).
