@@ -5,8 +5,8 @@
 ## Current execution state — 16 November 2026
 
 - Phase-0 deterministic Node monorepo/mock scaffold: **merged** in PR #8.
-- Provider-independent model gateway: **implemented on `feat/model-gateway-foundation` and awaiting repository CI/review**.
-- OpenHands agent adapter: not implemented; compatibility spike is next.
+- Provider-independent model gateway: **merged in PR #9**.
+- OpenHands agent adapter: **compatibility spike implemented on `feat/openhands-agent-adapter`; fake-server contract tests pass locally**.
 - Restricted workspace/sandbox: not implemented; OpenHands workspace vs OpenSandbox remains to be proven.
 - Real prompt → build → browser tests → preview → export vertical slice: not implemented.
 
@@ -65,8 +65,8 @@ Sandbox security precedes executing untrusted apps; authentication precedes publ
 | Task | Description | Depends on | Primary files/modules | Expected result / acceptance | Tests | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | FT-001 | Verify the monorepo baseline and CI | — | root workspaces, `.github/workflows/ci.yml` | clean install + existing mock/API tests pass | `npm ci --ignore-scripts`, `npm test` | **Done**; scaffold merged in PR #8 |
-| FT-002 | Provider-independent model gateway | FT-001 | `services/model-gateway`, env config, ADR 0004 | deterministic mock; opt-in Ollama; timeout/cancel/retry/usage/stream contracts; no mandatory paid API | unit/contract + full repository CI | **In review** in PR #9 |
-| FT-003 | OpenHands adapter compatibility spike | FT-002 | future `services/agent`, schemas, integration tests | one replaceable session interface can plan/emit events against deterministic fixtures; SDK details stay inside adapter | adapter contract tests; cancellation/error fixture | **Next** |
+| FT-002 | Provider-independent model gateway | FT-001 | `services/model-gateway`, env config, ADR 0004 | deterministic mock; opt-in Ollama; timeout/cancel/retry/usage/stream contracts; no mandatory paid API | unit/contract + full repository CI | **Done**; merged in PR #9 |
+| FT-003 | OpenHands adapter compatibility spike | FT-002 | `services/agent`, ADR 0005, integration tests | replaceable session interface maps verified v1.62 lifecycle endpoints; SDK details stay inside adapter | fake-server contract, cancellation, timeout and error tests; then real-server fixture | **In review** |
 | FT-004 | Select one restricted workspace strategy | FT-003 | future `services/sandbox`, ADR, security tests | create/write/read/run/timeout/artifact/cleanup with explicit isolation policy; choose OpenHands workspace or OpenSandbox based on evidence | lifecycle + traversal + timeout + isolation fixtures | Not started |
 | FT-005 | Deterministic prompt → build vertical slice | FT-003, FT-004 | agent, sandbox, templates, API | fixture creates a real minimal app, runs build/backend checks and exports complete source | integration tests incl. intentionally broken fixture | Not started |
 | FT-006 | Browser verification and preview boundary | FT-005 | Playwright, future preview service | generated app is reachable only through reviewed preview boundary and required user flow passes | Playwright smoke + preview-origin/security tests | Not started |
