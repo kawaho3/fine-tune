@@ -5,10 +5,10 @@
 ## Verified repository state
 
 - The GitHub repository **kawaho3/fine-tune** is public and its default branch is `main`.
-- Current audited `main` commit before this feature branch: `d56247404d690668901228e7e9ade3e479748de7`.
-- The Phase-0 deterministic mock scaffold was merged in commit `ec181c990d5b90d9048fe928e90b7a3fa333be14` (PR #8).
-- No open pull requests were present when this milestone started. Issues #1–#7 remained open.
-- The latest audited `main` commit did not expose a completed GitHub Actions run through the available integration, so current-main CI is **not claimed as verified** here.
+- Current `main` commit before this feature branch: `7797090aaed4d0e1aee15671da416f5c057371da`.
+- Phase-0 deterministic mock scaffold was merged in PR #8.
+- The provider-independent model gateway was merged in PR #9 at `7797090aaed4d0e1aee15671da416f5c057371da`.
+- PR #9 final CI run #7 passed `npm ci --ignore-scripts` and the complete repository test suite: **22 passed, 0 failed** on Node v22.23.4.
 
 ## Working Phase-0 scaffold
 
@@ -17,11 +17,9 @@
 - Sandboxed `iframe srcdoc` static preview, single HTML-file download, validation and HTTP security headers.
 - The scaffold PR recorded **12 tests passed, 0 failed** on Node v22.16.0. That evidence predates this branch and should not be confused with a new full-suite run.
 
-## Phase-1 foundation in this feature branch
+## Merged Phase-1 model foundation
 
-Branch: `feat/model-gateway-foundation`
-
-Implemented `services/model-gateway` as a replaceable inference boundary:
+`services/model-gateway` is merged as a replaceable inference boundary:
 
 - Deterministic mock provider remains the default for offline tests and CI.
 - Opt-in Ollama `/api/chat` provider using the Node.js 22 native `fetch` API; no extra npm runtime dependency.
@@ -40,7 +38,26 @@ Environment: Node.js v22.16.0, npm 10.9.2.
 - Focused model-gateway suite: **10 passed, 0 failed**.
 - Offline workspace install check: `npm ci --ignore-scripts --offline` succeeded in the reconstructed workspace with zero new third-party npm packages.
 - A live Ollama server/model was **not available and was not downloaded**, so live inference is not claimed as validated. The tenth regression test verifies that the gateway timeout still fires when a custom provider ignores the abort signal.
-- GitHub Actions run #6 on implementation commit `1945732c9bc0d4641dbd81bb8b27ce744c30e3ce` completed successfully on Node v22.23.4: `npm ci --ignore-scripts` passed and the complete `npm test` run reported **22 passed, 0 failed**. Subsequent documentation/CI-maintenance commits must also remain green before merge.
+- GitHub Actions final PR #9 run #7 completed successfully on Node v22.23.4: `npm ci --ignore-scripts` passed and the complete `npm test` run reported **22 passed, 0 failed**.
+
+## OpenHands adapter compatibility spike
+
+Branch: `feat/openhands-agent-adapter`.
+
+Implemented `services/agent` as a thin, replaceable adapter over the verified OpenHands Agent Server v1.62.0 REST contract:
+
+- bounded conversation creation with a product-side iteration cap
+- user-message events
+- run / pause / interrupt lifecycle controls
+- conversation status, event search, final response and deletion
+- `X-Session-API-Key` support without embedding credentials in URLs
+- loopback-only Agent Server URLs by default; remote endpoints require explicit operator opt-in
+- caller cancellation plus adapter-enforced timeouts
+- no automatic retry of lifecycle side-effect calls
+
+Local deterministic fake-server verification on Node v22.16.0: **7 passed, 0 failed**.
+
+This is a contract/transport spike only. A real OpenHands Agent Server, real coding model, WebSocket event stream, and real workspace execution have **not** been validated by this branch.
 
 ## Upstream research recorded for the next boundaries
 
@@ -52,15 +69,15 @@ See [REUSE_AUDIT.md](REUSE_AUDIT.md).
 
 ## NOT implemented or validated
 
-- No production AI coding agent, OpenHands adapter, secure application sandbox, PostgreSQL persistence, authenticated preview proxy, or deployment pipeline.
+- No validated live OpenHands coding-agent run, secure application sandbox, PostgreSQL persistence, authenticated preview proxy, or deployment pipeline.
 - The existing `/api/generate` mock builder is not yet wired to the model gateway.
 - No real full-stack generated application has been built, run, browser-tested, repaired, previewed, and exported through the target pipeline.
 - No trained model, fine-tuning dataset, public SaaS, user auth, billing, completed legal review, security audit, or project-wide distribution license.
 
 ## Next verifiable milestone
 
-1. Keep PR #9 green after the final documentation and pinned-action CI update.
-2. Perform the narrow OpenHands adapter compatibility spike without exposing SDK internals to product code.
+1. Keep the OpenHands adapter PR green in full repository CI.
+2. Run one pinned OpenHands Agent Server compatibility fixture and verify the adapter against the real server without requiring a paid production model.
 3. Compare the OpenHands workspace path against OpenSandbox with an executable restricted-workspace fixture before choosing one production execution layer.
 4. Continue toward prompt → plan → generated files → isolated build/test → preview → source export.
 
