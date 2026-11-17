@@ -217,3 +217,57 @@ test('environment factory defaults to local OpenHands and remains dependency-fre
   await adapter.getSession('abc');
   assert.equal(requested.url, 'http://127.0.0.1:8000/api/conversations/abc');
 });
+
+test('bounds fragmented OpenHands response bytes and cancels on overflow', async () => {
+  let calls = 0, cancelled = false;
+  const encoder = new TextEncoder();
+  const adapter = new OpenHandsAgentServerAdapter({ fetchImpl: async () => {
+    calls += 1;
+    let index = 0;
+    return new Response(new ReadableStream({
+      pull(controller) {
+        const parts = ['{"response":"', 'x'.repeat(600_000), 'x'.repeat(600_000), '"}'];
+        if (index < parts.length) controller.enqueue(encoder.encode(parts[index++]));
+        else controller.close();
+      },
+      cancel() { cancelled = true; },
+    }), { headers: { 'Content-Type': 'application/json' } });
+  } });
+  await assert.rejects(() => adapter.getFinalResponse('abc'), (error) => error instanceof AgentAdapterError && error.code === 'response_too_large' && error.retryable === false);
+  assert.equal(calls, 1);
+  assert.equal(cancelled, true);
+});
+
+test('OpenHands timeout cancels a custom held-open response body', async () => {
+  let cancelled = false;
+  const adapter = new OpenHandsAgentServerAdapter({ timeoutMs: 10, fetchImpl: async () => new Response(new ReadableStream({
+    start(controller) { controller.enqueue(new TextEncoder().encode('{')); },
+    cancel() { cancelled = true; },
+  }), { headers: { 'Content-Type': 'application/json' } }) });
+  await assert.rejects(() => adapter.getSession('abc'), (error) => error.code === 'timeout');
+  assert.equal(cancelled, true);
+});
+
+test('OpenHands HTTP error messages do not expose provider details or credentials', async () => {
+  const secretFixture = 'sensitive-fixture-value-never-for-errors';
+  const adapter = new OpenHandsAgentServerAdapter({ fetchImpl: async () => new Response(JSON.stringify({ detail: secretFixture }), {
+    status: 500, headers: { 'Content-Type': 'application/json' },
+  }) });
+  await assert.rejects(() => adapter.run('abc'), (error) => {
+    assert.equal(error.code, 'server_error');
+    assert.equal(error.status, 500);
+    assert.equal(error.message, 'OpenHands request failed with HTTP 500.');
+    assert.equal(JSON.stringify(error).includes(secretFixture), false);
+    return true;
+  });
+});
+
+test('malformed OpenHands JSON does not retain response excerpts in error causes', async () => {
+  const adapter = new OpenHandsAgentServerAdapter({ fetchImpl: async () => new Response('sensitive-invalid-json-fixture', { headers: { 'Content-Type': 'application/json' } }) });
+  await assert.rejects(() => adapter.getSession('abc'), (error) => {
+    assert.equal(error.code, 'invalid_response');
+    assert.equal(error.cause, undefined);
+    assert.equal(error.message.includes('sensitive-invalid-json-fixture'), false);
+    return true;
+  });
+});

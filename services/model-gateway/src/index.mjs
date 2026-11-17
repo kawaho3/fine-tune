@@ -1,5 +1,8 @@
 const ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+const MAX_RESPONSE_BYTES = 1024 * 1024;
+const MAX_STREAM_BYTES = 16 * 1024 * 1024;
+const MAX_STREAM_LINE_BYTES = 64 * 1024;
 
 export class ModelGatewayError extends Error {
   constructor(message, { code = 'model_error', provider = 'unknown', retryable = false, status = null, cause } = {}) {
@@ -52,7 +55,7 @@ function abortContext(external, timeoutMs) {
   const onAbort = () => controller.abort(external?.reason);
   if (external?.aborted) onAbort(); else external?.addEventListener('abort', onAbort, { once: true });
   const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
-  return { signal: controller.signal, timedOut: () => timedOut, cleanup() { clearTimeout(timer); external?.removeEventListener('abort', onAbort); } };
+  return { signal: controller.signal, abort: () => controller.abort(), timedOut: () => timedOut, cleanup() { clearTimeout(timer); external?.removeEventListener('abort', onAbort); } };
 }
 
 function abortError() {
@@ -145,10 +148,45 @@ function baseUrl(value, allowRemote) {
   return url;
 }
 
-async function jsonResponse(response, provider) {
+// A timeout alone does not bound memory, nor does a custom transport necessarily
+// cancel its response body when the request signal is aborted.
+async function* responseChunks(response, signal) {
+  if (!response.body) return;
+  const reader = response.body.getReader();
+  let ended = false;
+  const cancel = () => { void reader.cancel().catch(() => {}); };
+  signal?.addEventListener('abort', cancel, { once: true });
+  try {
+    if (signal?.aborted) throw abortError();
+    while (true) {
+      const chunk = await reader.read();
+      if (signal?.aborted) throw abortError();
+      if (chunk.done) { ended = true; return; }
+      yield chunk.value;
+    }
+  } finally {
+    signal?.removeEventListener('abort', cancel);
+    if (!ended) cancel();
+    reader.releaseLock();
+  }
+}
+
+function responseLimit(provider, status = null) {
+  return new ModelGatewayError('Model provider response exceeded the byte limit.', { code: 'response_too_large', provider, status });
+}
+
+async function jsonResponse(response, provider, signal) {
+  const decoder = new TextDecoder();
+  let text = '', bytes = 0;
+  for await (const chunk of responseChunks(response, signal)) {
+    bytes += chunk.byteLength;
+    if (bytes > MAX_RESPONSE_BYTES) throw responseLimit(provider, response.status);
+    text += decoder.decode(chunk, { stream: true });
+  }
+  text += decoder.decode();
   let data;
-  try { data = JSON.parse((await response.text()) || '{}'); }
-  catch (cause) { throw new ModelGatewayError('Model provider returned invalid JSON.', { code: 'invalid_provider_response', provider, status: response.status, cause }); }
+  try { data = JSON.parse(text || '{}'); }
+  catch { throw new ModelGatewayError('Model provider returned invalid JSON.', { code: 'invalid_provider_response', provider, status: response.status }); }
   if (!response.ok) {
     const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
     throw new ModelGatewayError('Model provider rejected the request.', { code: 'provider_response_error', provider, retryable, status: response.status });
@@ -160,7 +198,7 @@ async function jsonResponse(response, provider) {
 function streamLine(line, provider) {
   let data;
   try { data = JSON.parse(line); }
-  catch (cause) { throw new ModelGatewayError('Model provider returned malformed streaming JSON.', { code: 'invalid_provider_response', provider, cause }); }
+  catch { throw new ModelGatewayError('Model provider returned malformed streaming JSON.', { code: 'invalid_provider_response', provider }); }
   if (data?.error) throw new ModelGatewayError('Model provider returned a streaming error.', { code: 'provider_response_error', provider });
   if (data?.done === true) return { type: 'done', usage: usage(data) };
   if (typeof data?.message?.content !== 'string') throw new ModelGatewayError('Model provider returned an invalid streaming event.', { code: 'invalid_provider_response', provider });
@@ -191,31 +229,40 @@ export class OllamaModelProvider {
   async generate({ messages, model: requested, options, budget, signal }) {
     const model = this.model(requested);
     const response = await this.call(messages, model, false, options, budget, signal);
-    const data = await jsonResponse(response, this.name);
+    const data = await jsonResponse(response, this.name, signal);
     if (typeof data?.message?.content !== 'string') throw new ModelGatewayError('Ollama response did not contain message content.', { code: 'invalid_provider_response', provider: this.name, status: response.status });
     return { text: data.message.content, model, usage: usage(data) };
   }
   async *stream({ messages, model: requested, options, budget, signal }) {
     const model = this.model(requested);
     const response = await this.call(messages, model, true, options, budget, signal);
-    if (!response.ok) { await jsonResponse(response, this.name); return; }
+    if (!response.ok) { await jsonResponse(response, this.name, signal); return; }
     if (!response.body) throw new ModelGatewayError('Ollama streaming response had no body.', { code: 'invalid_provider_response', provider: this.name });
     const decoder = new TextDecoder();
-    let buffer = '', finalUsage = null, completed = false;
-    for await (const chunk of response.body) {
+    let buffer = '', bytes = 0;
+    for await (const chunk of responseChunks(response, signal)) {
+      bytes += chunk.byteLength;
+      if (bytes > MAX_STREAM_BYTES) throw responseLimit(this.name, response.status);
       buffer += decoder.decode(chunk, { stream: true });
       let at;
       while ((at = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, at).trim(); buffer = buffer.slice(at + 1);
-        if (!line) continue;
+        const line = buffer.slice(0, at); buffer = buffer.slice(at + 1);
+        if (Buffer.byteLength(line, 'utf8') > MAX_STREAM_LINE_BYTES) throw responseLimit(this.name, response.status);
+        if (!line.trim()) continue;
         const event = streamLine(line, this.name);
-        if (event.type === 'done') { finalUsage = event.usage; completed = true; } else yield event;
+        if (event.type === 'done') { yield { ...event, model }; return; }
+        yield event;
       }
+      if (Buffer.byteLength(buffer, 'utf8') > MAX_STREAM_LINE_BYTES) throw responseLimit(this.name, response.status);
     }
     buffer += decoder.decode();
-    if (buffer.trim()) { const event = streamLine(buffer.trim(), this.name); if (event.type === 'done') { finalUsage = event.usage; completed = true; } else yield event; }
-    if (!completed) throw new ModelGatewayError('Ollama stream ended without a completion event.', { code: 'invalid_provider_response', provider: this.name });
-    yield { type: 'done', model, usage: finalUsage };
+    if (Buffer.byteLength(buffer, 'utf8') > MAX_STREAM_LINE_BYTES) throw responseLimit(this.name, response.status);
+    if (buffer.trim()) {
+      const event = streamLine(buffer.trim(), this.name);
+      if (event.type === 'done') { yield { ...event, model }; return; }
+      yield event;
+    }
+    throw new ModelGatewayError('Ollama stream ended without a completion event.', { code: 'invalid_provider_response', provider: this.name });
   }
 }
 
@@ -276,6 +323,8 @@ export class ModelGateway {
     } catch (error) {
       throw normalized(error, this.provider.name, request?.signal, abort.timedOut());
     } finally {
+      // Ending iteration (including a consumer break) must stop outstanding I/O.
+      abort.abort();
       abort.cleanup();
       if (iterator && typeof iterator.return === 'function') {
         Promise.resolve().then(() => iterator.return()).catch(() => {});
