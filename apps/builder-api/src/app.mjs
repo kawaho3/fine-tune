@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { generateMockProject, InputError } from '@fine-tune/core';
+import { createProjectArchive } from './project-export.mjs';
 
 const MAX_BODY_BYTES = 4096;
 const ASSETS = new Map([
@@ -75,6 +76,17 @@ export function createHandler() {
         const result = generateMockProject(data.prompt);
         return sendJson(response, 200, result);
       }
+      if (pathname === '/api/export' && request.method === 'POST') {
+        const data = await readLimitedJson(request);
+        // Only the deterministic generator supplies files. Submitted paths or
+        // file contents are never accepted as filesystem or archive inputs.
+        const archive = createProjectArchive(generateMockProject(data.prompt).files);
+        response.statusCode = 200;
+        response.setHeader('Content-Type', 'application/zip');
+        response.setHeader('Content-Disposition', 'attachment; filename="fine-tune-project.zip"');
+        response.setHeader('Content-Length', archive.byteLength);
+        return response.end(archive);
+      }
       const asset = ASSETS.get(pathname);
       if (asset && request.method === 'GET') {
         const body = await readFile(asset.url);
@@ -82,8 +94,8 @@ export function createHandler() {
         response.setHeader('Content-Type', asset.type);
         return response.end(body);
       }
-      if (pathname === '/api/generate' || pathname === '/api/health' || asset) {
-        response.setHeader('Allow', pathname === '/api/generate' ? 'POST' : 'GET');
+      if (pathname === '/api/generate' || pathname === '/api/export' || pathname === '/api/health' || asset) {
+        response.setHeader('Allow', pathname === '/api/generate' || pathname === '/api/export' ? 'POST' : 'GET');
         return sendJson(response, 405, { error: 'Method not allowed.' });
       }
       return sendJson(response, 404, { error: 'Not found.' });
