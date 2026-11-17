@@ -1,72 +1,52 @@
 # Implementation status
 
-Updated: **17 November 2026**. Repository: `Planeshiffhter/fine-tune`, branch `main`.
+Updated: **18 November 2026**. Repository: `kawaho3/fine-tune`.
+Recovery branch: `recovery/verified-builder-2026-11-18`; starting/default SHA
+`4c38f0c950fb43e189e87b0b80052f6b1e14c034`.
 
-## Implemented foundation
-
-| Component | Existing behavior | Location |
+| Component | Verified behavior | Source and checks |
 | --- | --- | --- |
-| Builder API | Bounded HTTP routes, validation/security headers, static UI serving and deterministic generation | [apps/builder-api](../../apps/builder-api/) |
-| Builder UI | Prompt form, static sandboxed preview, plan and single HTML download | [apps/builder-web](../../apps/builder-web/) |
-| Project generator | Prompt validation, deterministic templates and HTML escaping | [packages/project-generator](../../packages/project-generator/) |
-| Model gateway | Default mock; opt-in Ollama; streaming, timeouts, cancellation, retries and usage mapping | [services/model-gateway](../../services/model-gateway/) |
-| Agent adapter | Bounded OpenHands REST lifecycle, cancellation, timeouts and local endpoint policy | [services/agent-adapter](../../services/agent-adapter/) |
+| Builder API | Bounded generation, complete static-project ZIP export, allowlisted UI, security headers | `apps/builder-api/src/`; API/export tests |
+| Builder UI | Prompt/examples, plan, opaque sandboxed static preview, HTML and complete ZIP downloads, error recovery | `apps/builder-web/public/`; six Playwright journeys |
+| Generator | Validated prompts, five deterministic templates, output encoding | `packages/project-generator/`; generator tests |
+| Model gateway | Mock/Ollama boundary, streaming, bounded response bytes, early completion/cancellation, timeout/retry contracts | `services/model-gateway/`; mock/transport tests |
+| Agent adapter | OpenHands REST lifecycle, bounded responses, redirect restrictions, cancellation/timeouts, generic remote errors | `services/agent-adapter/`; fake-server tests |
+| Recovery tooling | Data-only bounded recursive Git/ZIP inventory, SHA-256 duplicates, historical rename mapping | `tools/recovery/`; nine Python security tests |
+| Runtime prerequisite probe | Fixed, pinned Docker probe checks measured controls and cleans up | `tools/runtime/`; six unit tests; actual probe fails on CPU/memory/PID enforcement |
 
-The builder API calls `@fine-tune/core`. It does **not** call the model gateway or
-agent adapter. These are separate maintained boundaries, not duplicate generators.
+## Current validation
 
-## Latest evidence and current restriction
+- Original baseline: **41/41 tests passed** before code changes.
+- Current maintained Node tests: **68 passed, 0 failed/skipped**, on Node 24.22.1
+  and pinned official Node 22.23.5.
+- Recovery reader: **9 passed** on Python 3.12.14.
+- Chromium/Playwright: **6 passed**, including preview/download equality, complete
+  ZIP contents, error recovery, hostile prompt isolation, and mobile controls.
+- Frozen installation and `npm audit`: pass; zero reported npm advisories.
+- Local rootless Docker ignores requested per-container cgroup limits. The actual
+  readiness probe exits 1: memory/CPU/PID gates fail. This is an unresolved
+  environment prerequisite, not a passing sandbox test.
+- GitHub API access is blocked at the proxy. Current remote CI and owner-only
+  account/security settings are unverified.
 
-The previous [validation report](VALIDATION_REPORT.md), delivered at `3d00f02`,
-records **41 passing tests** on Node 22.23.5 and 24.22.1, startup requests and mock
-browser flows. That evidence belongs to the earlier code state and is not a new
-runtime result for this restructuring.
+## Recovery disposition
 
-The current owner request explicitly says **do not run tests**. This pass performs
-file/content analysis, relocation, reference inspection and preservation checks
-only. No installation, build, test suite, application startup, browser run or
-upstream execution is part of this pass. Its commit includes `[skip ci]` so the
-push does not request the existing GitHub Actions test workflow.
+The [checkpoint](../recovery/REPORT.md), [baseline inventory](../recovery/inventory.json)
+and [path map](../recovery/path-map.json) distinguish inspected bytes from verified
+behavior. All original material is retained. Four disguised source snapshots are
+older versions of maintained code, not missing implementations to restore.
+No speculative source moves or bulk deletion were necessary: the maintained
+components already occupy appropriate functional homes.
 
-## Whole-repository organization
+The old no-tests/direct-to-main instructions belonged to earlier tasks. This
+request authorizes testing and requires a recovery branch with reviewable commits;
+no automatic merge, force push, or published-history rewrite.
 
-Starting point: `3d00f02c217419e6172a9c2586db7660db1fa391`, matching fetched
-`origin/main`; 110 tracked files and no pre-existing uncommitted project changes.
+## Remaining product gate
 
-- Kept all existing source, tests, workspace roots, package names, lockfile and
-  GitHub configuration in their existing functional homes.
-- Moved historical audit, inventory, feature, migration, security, validation and
-  handoff records into `AnalyseFuture/history/recovery-reports/`.
-- Moved previous organization evidence and the historical architecture recovery
-  review into `AnalyseFuture/history/organization/`, retaining their bytes.
-- Promoted the canonical product vision into `docs/product/`; retained the obsolete
-  compatibility pointer in historical organization records. No idea was dropped.
-- Replaced cumulative current navigation with [PROJECT_STRUCTURE.md](../../PROJECT_STRUCTURE.md)
-  and updated affected current links and browser source/roadmap links.
-- Recorded every baseline file, destination, purpose, relationships, hashes and
-  original-content location in the [file catalogue](../../AnalyseFuture/organization/FILE_CATALOG.json).
-  All edited originals are retained in a separate restoration ZIP.
-
-The previous full status chronology is preserved byte-for-byte in
-[PRE_RESTRUCTURE_ORIGINALS_3D00F02.zip](../../AnalyseFuture/organization/PRE_RESTRUCTURE_ORIGINALS_3D00F02.zip)
-as `docs/development/IMPLEMENTATION_STATUS.md`; earlier reports and their
-original path references remain historical evidence. See the
-[organization report](../../AnalyseFuture/organization/REORGANIZATION.md).
-
-## Not implemented or verified live
-
-A real coding-agent run, secure generated-code execution, OpenHands/OpenSandbox
-compatibility, model-to-builder integration, persistent projects, tenant auth,
-full-stack generated-app build/browser/export, production hosting, billing and
-fine-tuning are still product work. Live Ollama and a real OpenHands Agent Server
-are not established by mock/fake-server tests. No separate English-speaking
-companion implementation was found in the maintained source.
-
-## Next product milestone
-
-When separately requested, prove one pinned real-agent compatibility fixture and
-select one restricted execution strategy. Then implement a deterministic
-prompt-to-build/browser/export slice before adding live generation. Follow the
-[roadmap](../product/ROADMAP.md), [security architecture](../security/SECURITY_ARCHITECTURE.md)
-and [current continuation guide](CONTINUATION.md). The current testing pause
-remains in effect until the owner changes it.
+The browser still calls the deterministic generator, not a coding agent. Secure
+untrusted-code execution, generated full-stack builds/tests, isolated live app
+previews, live Ollama/OpenHands compatibility, persistence, tenant auth,
+deployment, and training remain unimplemented or unverified. The next task must
+supply an execution environment that actually enforces resource limits before
+running any generated programs. Do not treat mock/fake-server tests as live proof.

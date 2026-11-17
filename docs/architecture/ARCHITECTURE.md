@@ -23,14 +23,15 @@ One original product repository with clean boundaries and pinned third-party dep
 The current builder still calls `packages/project-generator`; it is intentionally **not** described as AI generation.
 
 The complete functional layout and placement decisions are in
-[PROJECT_STRUCTURE.md](../../PROJECT_STRUCTURE.md). Package names and exported
-contracts remain compatible. The initial folder reorganization was static-only;
-later owner-authorized [validation](../development/VALIDATION_REPORT.md)
-records passing results on Node 22/24, startup and the mock UI at the prior
-baseline. The current organization pass runs no tests and claims no fresh runtime
-validation. Active source/workspace paths stay unchanged. Historical reviews and
-recovery records now live under `AnalyseFuture/history/`; the canonical product
-vision belongs with current product planning.
+[PROJECT_STRUCTURE.md](../../PROJECT_STRUCTURE.md). The current recovery adds
+complete static-project ZIP export at `POST /api/export`, using the existing
+deterministic generator and bounded in-memory serialization. The UI retains its
+successful prompt for export and keeps the script-disabled opaque iframe.
+`tools/recovery` owns data-only inventory; `tools/runtime` owns a fail-closed
+Docker prerequisite check. Neither tool executes archive or generated programs.
+Current test evidence and unresolved runtime controls are recorded in the
+[recovery checkpoint](../recovery/REPORT.md). Source package paths and public
+library exports are retained.
 
 The original upstream ZIPs are kept in `AnalyseFuture/references/upstream/`.
 Historical documents and an inventory preserve the pre-organization contents.

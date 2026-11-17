@@ -18,14 +18,11 @@ The product should offer:
 
 ## Start here
 
-The complete functional layout is documented in
-[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md), with a per-file preservation
-[catalogue](AnalyseFuture/organization/FILE_CATALOG.md). Documentation is grouped
-in the [functional index](docs/README.md). This restructuring is **static-only**:
-the owner requested no tests. The earlier
-[validation report](docs/development/VALIDATION_REPORT.md) records 41 passing tests
-on Node 22/24 plus startup/browser checks at the prior baseline. Those results
-have not been rerun for this change.
+The functional layout is documented in [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md).
+The latest [recovery checkpoint](docs/recovery/REPORT.md) records the independently
+verified baseline, complete data inventory, security fixes, project export and
+current tests. Historical reports remain preserved; their task-specific testing
+pauses and direct-to-main instructions are superseded by this recovery request.
 
 | Audience | Read first |
 | --- | --- |
@@ -63,7 +60,7 @@ no original file content was discarded during the organization pass.
 
 ## Run the current local mock
 
-Requirements: Node.js 22+ and npm. The current repository adds no third-party npm package for the model gateway.
+Requirements: Node.js 22+ and npm. The model gateway remains dependency-free. The API uses pinned MIT-licensed `fflate` for complete source ZIP export.
 
 ```bash
 npm ci --ignore-scripts
@@ -71,8 +68,22 @@ npm test
 npm run dev
 ```
 
-`npm test` explicitly names the four maintained test files. Add new active tests
-to that command when extending the suite; archived reference code is excluded.
+`npm test` includes maintained component tests and runtime-probe unit tests through
+scoped paths; archived reference code is excluded. Additional checks:
+
+```bash
+npm run test:recovery              # Python 3.12+; bounded archive-reader tests
+npx playwright install chromium    # once, or use an installed Chromium below
+npm run test:browser                # actual browser journeys, owned test server
+# With a preinstalled system browser:
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run check
+```
+
+The UI downloads either HTML or a complete static project ZIP (`index.html` and
+`README.md`). ZIP export uses the successful preview's original prompt even if
+the input is edited. No generated programs are executed. Optional
+`npm run check:sandbox` probes a pinned local Docker image and **fails closed**
+when resource enforcement is unavailable; see the recovery checkpoint.
 Both HTTP adapters reject redirects, so configure the final Ollama/Agent Server
 endpoint rather than an address that redirects elsewhere. See the
 [security review](AnalyseFuture/history/recovery-reports/security/SECURITY_AUDIT.txt) for evidence and unresolved limits.

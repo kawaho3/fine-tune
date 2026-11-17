@@ -1,8 +1,27 @@
-# Post-move validation and fixes
+# Validation evidence
 
-> Historical validation evidence from the previous baseline. The later whole-repository
-> restructuring is static-only: its owner explicitly requested no tests. The results
-> below have not been rerun for that restructuring; its commits use `[skip ci]`.
+## Current recovery — 18 November 2026
+
+Baseline `4c38f0c950fb43e189e87b0b80052f6b1e14c034`; recovery branch
+`recovery/verified-builder-2026-11-18`. Testing is authorized by the latest request.
+
+- Baseline before changes: 41 Node tests passed.
+- Current Node suites: 68 passed on Node 24.22.1 and official pinned Node 22.23.5;
+  affected Node 22 runtime tests reran after signal-handling refinement (6 passed).
+- Python recovery security tests: 9 passed.
+- Chromium Playwright journeys: 6 passed, including complete ZIP download equality.
+- Frozen installation, dependency audit and whitespace checks pass.
+- Real runtime prerequisite gate: nonzero, three resource-enforcement failures.
+  No generated program was executed. Remote Actions results remain unavailable.
+
+Exact commands, runtime limitations, feature/test mapping and continuation are in
+[the recovery checkpoint](../recovery/REPORT.md).
+
+## Historical post-move validation
+
+The following evidence describes the earlier task and its commits. Its closing
+statements about a later testing pause and direct-main delivery are historical;
+they do not apply to the current recovery request.
 
 Date: **17 November 2026**. Starting commit:
 `4a20bb07af3a81c4da256214900e617dad69383a`.

@@ -16,7 +16,7 @@ feature ownership, preservation and per-file relocation index.
 | Long-term vision | [Detailed future vision](product/PROJECT_VISION_AND_FUTURE_ROADMAP.txt) |
 | Previous recovery evidence | [Preserved collections](../AnalyseFuture/README.md) |
 
-The current restructuring is static-only and runs no tests. Earlier testing
-and repairs were separately authorized; [VALIDATION_REPORT.md](development/VALIDATION_REPORT.md) now
-records the earlier Node 22/24 suite, startup and browser results. Preserved
-audit results remain historical evidence for their own commits.
+Current recovery and testing evidence lives in the [recovery checkpoint](recovery/REPORT.md),
+[baseline inventory](recovery/inventory.json), and [path map](recovery/path-map.json).
+The latest request authorizes safe testing and supersedes earlier static-only
+restrictions. Previous validation remains historical evidence for its own commits.

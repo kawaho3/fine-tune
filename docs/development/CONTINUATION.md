@@ -1,76 +1,57 @@
 # Current continuation guide
 
-Updated: **17 November 2026**, for the whole-repository restructuring from
-`3d00f02c217419e6172a9c2586db7660db1fa391`.
+Updated **18 November 2026**. Read [AGENTS.md](../../AGENTS.md), the
+[status](IMPLEMENTATION_STATUS.md), and [recovery checkpoint](../recovery/REPORT.md).
+Use the existing isolated checkout; create no worktree unless requested.
 
-## Working instructions
+## Current authorization
 
-- Use the existing checkout. Each cloud task is already isolated; do not create a
-  worktree unless requested. Follow [AGENTS.md](../../AGENTS.md).
-- The owner requests direct commits and normal pushes to `main`, without a PR,
-  history rewrite or force-push.
-- **Do not run tests for this restructuring.** Do not install dependencies, build,
-  start the app, run browser flows or execute archived source during this pass.
-  Use `[skip ci]` for its commits. Prior authorization to test belonged to an
-  earlier task and is superseded by this request.
-- Keep every existing file and idea. Preserve edited originals and uncertain
-  material under `AnalyseFuture/`, with provenance. Keep historical contents inert.
-- Read the [structure guide](../../PROJECT_STRUCTURE.md),
-  [status](IMPLEMENTATION_STATUS.md) and [architecture](../architecture/ARCHITECTURE.md).
+The latest recovery request supersedes the old static-only testing pause and
+instructions to push directly to main. Keep work on the recovery branch, make
+reviewable commits, and do not merge automatically, force-push, or rewrite history.
+Keep archive contents inert; inspect them as data before selective integration.
+Preserve unique source, requirements, security evidence, and uncertain provenance.
 
-## Functional ownership
+## Reproduce
 
-| Responsibility | Home |
-| --- | --- |
-| HTTP routes, limits and static asset serving | [apps/builder-api](../../apps/builder-api/) |
-| Prompt UI, plan, preview and HTML download | [apps/builder-web](../../apps/builder-web/) |
-| Deterministic templates and prompt validation | [packages/project-generator](../../packages/project-generator/) |
-| OpenHands lifecycle transport | [services/agent-adapter](../../services/agent-adapter/) |
-| Mock/Ollama model-provider boundary | [services/model-gateway](../../services/model-gateway/) |
-| Charter, requirements, roadmap and full future vision | [docs/product](../product/) |
-| Current developer workflow and previous validation scope | [docs/development](./) |
-| Architecture, decisions, security, research and other policies | [docs index](../README.md) |
-| Historical snapshots and recovery reports | [AnalyseFuture/history](../../AnalyseFuture/history/) |
-| Upstream source references, kept compressed | [AnalyseFuture/references/upstream](../../AnalyseFuture/references/upstream/) |
-| Current file catalogue and preservation evidence | [AnalyseFuture/organization](../../AnalyseFuture/organization/) |
+From the repository root (Node 22+, npm, Python 3.12+):
 
-All five workspace package names stay unchanged: `@fine-tune/api`,
-`@fine-tune/web`, `@fine-tune/core`, `@fine-tune/agent` and
-`@fine-tune/model-gateway`. Keep component tests beside the component. The current
-runtime call path remains:
-
-```text
-builder-web -> POST /api/generate -> builder-api -> @fine-tune/core
-                                                (project-generator)
-agent-adapter and model-gateway remain independent integration boundaries.
+```sh
+npm ci --ignore-scripts
+npm test
+npm run test:recovery
+npx playwright install chromium
+npm run test:browser
+npm run dev
 ```
 
-Root npm scripts, API asset paths, workspace symlinks, lockfile entries and
-library exports retain their existing locations. The browser source and roadmap
-links now use the selected `Planeshiffhter/fine-tune` repository.
+Use `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` for the current
+machine's installed browser. `npm run check` runs Node, recovery and browser tests.
+The browser runner starts and stops its own server on port 3100 and refuses to
+reuse an unrelated server. The developer server defaults to port 3000; set HOST
+and PORT explicitly when needed. No credentials, paid APIs or live model are
+required for deterministic development. No project build step currently exists.
 
-## Validation and unfinished product work
+Runtime code stays in the five npm workspaces. API export owns ZIP serialization;
+recovery and runtime diagnostics live in tools/, with cross-cutting tests in
+tests/. Baseline inventory artifacts deliberately target the starting commit, not
+new files created by this checkpoint. Regenerate into temporary outputs using the
+exact command in the recovery report when checking preservation.
 
-[VALIDATION_REPORT.md](VALIDATION_REPORT.md) records the earlier 41-test Node
-22/24 results and startup/browser checks. **No new runtime result is claimed**
-for this static restructuring. The four maintained test files remain in place;
-run them only after the owner lifts the testing pause for the relevant work.
+## Next dependency-ordered work
 
-Live agent/model integration, one verified isolated execution path, generated-app
-build/browser/export, persistence, authentication, deployment and training remain
-separate milestones. The repository is an app-builder foundation; do not invent
-missing capabilities or relabel the conversation adapter as a separate product.
+1. Provide a supported runtime with actual per-workspace CPU, RAM and PID limits.
+   Pull the pinned image documented in the report, then run `npm run check:sandbox`.
+   A passing prerequisite probe still needs adversarial lifecycle/isolation tests;
+   it does not enable arbitrary execution or certify a production sandbox.
+2. Review/pin one agent/workspace integration and verify a real server contract.
+   Keep existing model/agent transport interfaces replaceable.
+3. Implement a deterministic fixture that creates project files, builds/tests
+   inside that runtime, presents a separate-origin preview, and exports complete
+   source. Test cancellation, broken builds, cleanup and the browser journey.
+4. Only then add live local inference and later persistence/auth/deployment.
 
-## Preservation and recovery
-
-The [file catalogue](../../AnalyseFuture/organization/FILE_CATALOG.json) maps every
-starting file to its current home and the exact retained original. Old reports
-keep their original body paths; use their recorded original location and this
-catalogue to interpret those paths rather than treating them as current links.
-The old 101-file organization ledger is preserved under
-[history/organization](../../AnalyseFuture/history/organization/).
-
-The current pre-edit originals are in
-[PRE_RESTRUCTURE_ORIGINALS_3D00F02.zip](../../AnalyseFuture/organization/PRE_RESTRUCTURE_ORIGINALS_3D00F02.zip).
-Select an individual original when needed; do not reset published history.
-Normal push plus matching remote SHA confirms delivery, not application behavior.
+Do not restore older disguised adapter snapshots wholesale: they lack later
+security fixes. The reference archives were read and hashed but never executed;
+their own suites remain unrun. GitHub account controls require owner verification
+because the current proxy blocks the API. No credentials should be supplied in chat.

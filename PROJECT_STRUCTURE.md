@@ -1,9 +1,17 @@
 # Project structure
 
-`Planeshiffhter/fine-tune` is one npm monorepo for an AI app-builder foundation.
+`kawaho3/fine-tune` is one npm monorepo for an AI app-builder foundation.
 Files are grouped by responsibility and ownership. Correctly placed code stays
 beside its own tests, assets and package metadata. No existing feature, file or
 future idea was discarded in this restructuring.
+
+Current recovery tooling lives in `tools/recovery/` (bounded data inventory) and
+`tools/runtime/` (measured Docker prerequisite gate). Cross-component browser,
+recovery and runtime-unit tests live in `tests/{browser,recovery,runtime}/`;
+`playwright.config.mjs` owns the browser test server. Current machine-readable
+baseline evidence and the compact checkpoint are in `docs/recovery/`. Original
+archive/historical paths are retained. No empty product service directories were
+added; execution infrastructure remains a blocked milestone.
 
 ## Current layout
 
@@ -25,8 +33,8 @@ fine-tune/
 ├── apps/
 │   ├── builder-api/
 │   │   ├── package.json              @fine-tune/api
-│   │   ├── src/{app,server}.mjs       HTTP handler and process entry point
-│   │   └── test/app.test.mjs          API and static-serving regression suite
+│   │   ├── src/{app,server,project-export}.mjs       HTTP handler and process entry point
+│   │   └── test/{app,export}.test.mjs          API and static-serving regression suite
 │   └── builder-web/
 │       ├── package.json              @fine-tune/web
 │       └── public/                   index.html, app.js and styles.css
@@ -97,10 +105,10 @@ model-gateway --------> deterministic mock / separately configured Ollama (optio
 
 The existing mock route does not invoke the agent or model gateway. Those modules
 are distinct integration boundaries, not competing copies of the generator.
-The root scripts explicitly name the server and four test files. The API's
-relative asset paths, package exports, lockfile workspace links and test imports
-remain at their existing paths. The only UI edit corrects source/roadmap navigation
-to this repository; no runtime behavior or dependencies were rewritten.
+Root scripts use scoped maintained test directories; archives stay outside discovery.
+Relative API assets, workspace exports and imports keep their functional homes.
+The recovery adds API-owned bounded ZIP serialization and browser export controls;
+see the checkpoint for dependency and regression evidence.
 
 Root package manifests, discovery policies, GitHub templates and security/reporting
 entry points keep their standard tool-discovered locations. Functional grouping
@@ -132,30 +140,16 @@ system.
 
 ## Preservation and review scope
 
-The baseline is `3d00f02c217419e6172a9c2586db7660db1fa391`: 110 tracked files.
-Twenty-eight files moved; all remaining starting paths retain their functional
-homes. Relocated historical evidence and all five existing ZIPs retain exact bytes. Every
-edited original is additionally stored at its baseline relative path in
-[PRE_RESTRUCTURE_ORIGINALS_3D00F02.zip](AnalyseFuture/organization/PRE_RESTRUCTURE_ORIGINALS_3D00F02.zip).
-The [current report](AnalyseFuture/organization/REORGANIZATION.md) explains each
-decision; the catalogue gives old-to-new lookup and SHA-256 preservation evidence.
-No duplicates were deleted or merged on appearance alone.
+Current recovery starts at `4c38f0c950fb43e189e87b0b80052f6b1e14c034` (115 tracked
+files). The [recovery report](docs/recovery/REPORT.md) records independently checked
+archive totals, historical moves, preservation hashes, tests and remaining gates.
+The [inventory](docs/recovery/inventory.json) and [path map](docs/recovery/path-map.json)
+cover all baseline files and recursively detected archive members. No original
+source or archive was deleted. Existing functional homes were retained after
+inspection, and new tools/tests are placed by responsibility.
 
-Historical reports and old ledgers retain their old paths and repository names as
-evidence. Resolve them using their recorded original location and the new mapping;
-use current docs for live navigation. The original structure guide and full status
-chronology are included in the pre-edit archive rather than discarded.
-
-Ignored `node_modules/` is local installation state: its lock metadata and all
-five workspace symlinks were inspected and retained. `.git/` remains untouched
-repository metadata, outside the project sorting inventory. No extra untracked
-project material or nested checkout was found. There were no tracked submodules
-or symlinks; an upstream internal symlink stays inert inside its archive.
-
-**No tests were run**, locally or requested through this push's normal CI trigger
-(`[skip ci]`). No app, browser, build or installer was executed. Static link,
-path, workspace and content/hash review establishes preservation and navigation;
-it does not establish runtime correctness. The earlier
-[validation report](docs/development/VALIDATION_REPORT.md) remains historical evidence.
-Git delivery is a normal commit/push directly to `main`, without a PR or history
-rewrite; remote SHA comparison establishes delivery separately from runtime behavior.
+Earlier organization records stay under `AnalyseFuture/history/` and
+`AnalyseFuture/organization/`; their old paths, repository names and task-specific
+restrictions are historical evidence. Current instructions authorize tests and
+require a recovery branch, not direct-to-main delivery. All changes remain
+reviewable without a force-push or automatic merge.

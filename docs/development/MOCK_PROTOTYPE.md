@@ -1,10 +1,10 @@
 # Offline Mock Prototype — Phase 0
 
-This PR introduces **working project scaffolding** (not a full-stack AI builder). It deliberately avoids external dependencies so the team can verify the browser → API → deterministic provider seam without paid AI API calls.
+This is **working project scaffolding**, not a full-stack AI builder. The browser → API → deterministic generator seam requires no paid model service.
 
 ## Run locally
 
-Requirements: Node.js 22+ and npm 10+. The project has **no external npm dependencies** at this stage.
+Requirements: Node.js 22+ and npm 10+. Exact locked `fflate` handles ZIP export; Playwright is a development-only browser dependency.
 
 ```bash
 npm ci --ignore-scripts
@@ -16,16 +16,17 @@ Open <http://127.0.0.1:3000>. `HOST` and `PORT` can be set as environment variab
 
 ## What works
 
-- Real, working UI with request form, predefined examples, status messages, plan list, downloadable HTML file, and an embedded sandboxed **static** preview.
+- Real, working UI with request form, predefined examples, status messages, plan list, downloadable HTML and complete source ZIP, and an embedded sandboxed **static** preview.
 - `POST /api/generate` validates an incoming prompt, chooses a deterministic template and returns `index.html` and a short README. No model inference occurs.
+- `POST /api/export` validates a prompt and downloads every deterministic source file as ZIP. It ignores submitted paths and applies bounded portable archive names to generator files.
 - `GET /api/health` exposes `model_connected: false` and `mode: offline_mock`.
 - Static files are served from an explicit allowlist. HTTP method limits, request body size cap, validation errors, CSP and security headers are included.
 - Node unit/API tests cover template choice, determinism, HTML escaping, basic API errors, status honesty, asset allowlisting and sandboxed iframe markup.
 
 ## Explicit non-capabilities
 
-- Not a trained model or AI agent; no OpenHands integration, backend/application database generation, arbitrary-code execution, Playwright run, secure production workspace, login, persistence, ZIP project export, or deployment.
-- Generated files are returned in an API response; the UI currently downloads the HTML file only. Build and browser tests are **not run** on generated content. Nothing is saved on the server.
+- Not a trained model or AI agent; no OpenHands integration, backend/application database generation, arbitrary-code execution, secure production workspace, login, persistence, or deployment.
+- Generated files are returned in an API response and downloadable as a complete ZIP or HTML. Playwright checks the static preview and export; generated backend/build execution is **not implemented**. Nothing is saved on the server.
 - The iframe has an empty `sandbox` attribute to disable scripts, top-level navigation and same-origin privilege. This is a safe preview of **static** mock HTML, not a replacement for isolated production app execution.
 - The interface should not be exposed publicly without authentication, rate limits and deployment review. It binds to localhost by default.
 
