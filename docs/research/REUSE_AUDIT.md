@@ -42,6 +42,25 @@ Both projects can participate in code execution/workspace workflows, so importin
 
 **Decision:** first build a narrow OpenHands agent adapter fixture and a separate workspace contract. Then test whether the selected OpenHands workspace path alone satisfies the first restricted-development milestone. Adopt OpenSandbox as the production workspace implementation only when the fixture demonstrates a concrete isolation/lifecycle advantage and a clean API boundary. Direct OpenHands ↔ OpenSandbox compatibility is **unverified**; do not invent an integration.
 
+## Adopted supporting dependencies — 18 November 2026
+
+- `fflate` **0.8.3**, exact API dependency: MIT; installed license verified;
+  registry modified 20 July 2026; lockfile records SHA-512 integrity. Mature ZIP
+  implementation avoids a custom archive encoder. No lifecycle script or model
+  service dependency. It runs only on bounded generator files, not arbitrary
+  uploaded ZIPs. ZIP compression uses CPU/memory in the API, bounded here to 100
+  entries, 512 KiB/file and 1 MiB total. Preserve its license when distributing.
+- `@playwright/test` **1.65.1**, exact development dependency: Apache-2.0;
+  installed license verified; registry modified 17 November 2026. Standard
+  browser runner, owned local test server, no production runtime or paid service.
+  Browser binaries/system libraries are optional installation prerequisites for
+  browser checks; a system Chromium path is supported.
+- `npm audit --json --cache /workspace/.npm-cache` reports zero advisories for
+  the installed lockfile. This is not a guarantee against undisclosed issues.
+  No archived upstream source was copied into either product dependency.
+
+See [ADR 0007](../architecture/decisions/0007-source-export-and-readiness-gates.md).
+
 ## Candidate inventory
 
 | Candidate | Public source | Intended role | Current disposition |

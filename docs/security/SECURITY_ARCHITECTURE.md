@@ -2,6 +2,24 @@
 
 **Status:** requirements to implement and verify; not an audited secure design.
 
+## Verified recovery controls and open runtime gate
+
+The maintained transports reject redirects and now bound JSON/text to 1 MiB,
+NDJSON lines to 64 KiB and complete streams to 16 MiB. Stream completion and
+consumer cancellation stop underlying work. Remote OpenHands error details and
+malformed JSON excerpts are not exposed through public errors. Regression tests
+exercise these controls; live services remain unverified.
+
+ZIP export only serializes generator-supplied in-memory files, with portable path,
+duplicate, file-count and byte limits. It never reads requested host paths. Static
+previews retain an empty-sandbox opaque iframe. This is not a server-side sandbox.
+
+The fixed Docker readiness probe verifies controls rather than trusting flags.
+Current rootless Docker passes filesystem/network checks but ignores per-container
+CPU/RAM/PID limits. The gate fails; no untrusted/generated execution is enabled.
+Account security is unverified because GitHub API access is blocked. See the
+[recovery checkpoint](../recovery/REPORT.md) for findings and owner actions.
+
 ## Trust boundaries
 
 1. Public users / browsers → product API.

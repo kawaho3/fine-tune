@@ -283,3 +283,110 @@ test('custom providers remain replaceable behind the same gateway contract', asy
   const gateway = new ModelGateway(provider, { maxRetries: 0 });
   assert.equal((await gateway.generate({ messages })).provider, 'custom-fixture');
 });
+
+function fixtureBody(parts, { close = true, onCancel = () => {} } = {}) {
+  const encoder = new TextEncoder();
+  let index = 0;
+  return new ReadableStream({
+    pull(controller) {
+      if (index < parts.length) controller.enqueue(encoder.encode(parts[index++]));
+      else if (close) controller.close();
+    },
+    cancel: onCancel,
+  });
+}
+
+test('Ollama completion finishes without EOF and cancels the remaining transport', { timeout: 1000 }, async () => {
+  let cancelled = false;
+  const body = fixtureBody([
+    '{"message":{"content":"finished"},"done":false}\n{"done":true,"eval_count":3}\n',
+  ], { close: false, onCancel() { cancelled = true; } });
+  const gateway = new ModelGateway(new OllamaModelProvider({ model: 'fixture', fetchImpl: async () => new Response(body) }), { timeoutMs: 100 });
+  const events = await Array.fromAsync(gateway.stream({ messages }));
+  assert.deepEqual(events.map((event) => event.type), ['text-delta', 'done']);
+  assert.equal(events[1].usage.outputTokens, 3);
+  assert.equal(cancelled, true);
+});
+
+test('Ollama ignores trailing output after the first completion event', async () => {
+  const body = '{"done":true}\n{"message":{"content":"must not be emitted"},"done":false}\nmalformed tail\n';
+  const provider = new OllamaModelProvider({ model: 'fixture', fetchImpl: async () => new Response(body) });
+  const events = await Array.fromAsync(provider.stream({ messages }));
+  assert.deepEqual(events, [{ type: 'done', usage: null, model: 'fixture' }]);
+});
+
+test('consumer break aborts the provider signal and cancels its transport', async () => {
+  let signal, cancelled = false;
+  const gateway = new ModelGateway(new OllamaModelProvider({ model: 'fixture', fetchImpl: async (_url, init) => {
+    signal = init.signal;
+    return new Response(fixtureBody(['{"message":{"content":"one"},"done":false}\n'], { close: false, onCancel() { cancelled = true; } }));
+  } }));
+  for await (const event of gateway.stream({ messages })) {
+    assert.equal(event.delta, 'one');
+    break;
+  }
+  assert.equal(signal.aborted, true);
+  assert.equal(cancelled, true);
+});
+
+for (const mode of ['generate', 'stream']) {
+  test(`Ollama ${mode} rejects oversized JSON responses without retrying`, async () => {
+    let calls = 0, cancelled = false;
+    const gateway = new ModelGateway(new OllamaModelProvider({ model: 'fixture', fetchImpl: async () => {
+      calls += 1;
+      return new Response(fixtureBody(['{"error":"', 'x'.repeat(600_000), 'x'.repeat(600_000), '"}'], { onCancel() { cancelled = true; } }), { status: mode === 'stream' ? 503 : 200 });
+    } }), { maxRetries: 3 });
+    await assert.rejects(async () => {
+      if (mode === 'generate') await gateway.generate({ messages });
+      else for await (const event of gateway.stream({ messages })) assert.fail(`Unexpected event ${event.type}`);
+    }, (error) => error.code === 'response_too_large' && error.retryable === false && error.provider === 'ollama');
+    assert.equal(calls, 1);
+    assert.equal(cancelled, true);
+  });
+}
+
+test('Ollama bounds fragmented NDJSON lines in bytes and cancels on overflow', async () => {
+  let cancelled = false;
+  const gateway = new ModelGateway(new OllamaModelProvider({ model: 'fixture', fetchImpl: async () => new Response(fixtureBody([
+    '{"message":{"content":"', 'é'.repeat(20_000), 'é'.repeat(20_000), '"},"done":false}\n',
+  ], { onCancel() { cancelled = true; } })) }));
+  await assert.rejects(async () => {
+    for await (const _event of gateway.stream({ messages })) assert.fail('Oversized line must not emit output');
+  }, (error) => error.code === 'response_too_large' && error.retryable === false);
+  assert.equal(cancelled, true);
+});
+
+test('Ollama bounds total streamed bytes even when every line is within its limit', async () => {
+  let cancelled = false;
+  const line = JSON.stringify({ message: { content: 'x'.repeat(60_000) }, done: false }) + '\n';
+  const gateway = new ModelGateway(new OllamaModelProvider({ model: 'fixture', fetchImpl: async () => new Response(fixtureBody(Array(281).fill(line), { onCancel() { cancelled = true; } })) }));
+  let count = 0;
+  await assert.rejects(async () => {
+    for await (const _event of gateway.stream({ messages })) count += 1;
+  }, (error) => error.code === 'response_too_large' && error.retryable === false);
+  assert.ok(count > 0 && count < 281);
+  assert.equal(cancelled, true);
+});
+
+test('Ollama JSON response reading cancels a held-open custom body on timeout', async () => {
+  let cancelled = false;
+  const body = fixtureBody(['{'], { close: false, onCancel() { cancelled = true; } });
+  const gateway = new ModelGateway(new OllamaModelProvider({ model: 'fixture', fetchImpl: async () => new Response(body) }), { timeoutMs: 10 });
+  await assert.rejects(() => gateway.generate({ messages }), (error) => error.code === 'timeout');
+  assert.equal(cancelled, true);
+});
+
+test('malformed provider JSON does not retain response excerpts in error causes', async () => {
+  for (const mode of ['generate', 'stream']) {
+    const gateway = new ModelGateway(new OllamaModelProvider({ model: 'fixture', fetchImpl: async () => new Response('sensitive-invalid-json-fixture\n') }));
+    await assert.rejects(async () => {
+      if (mode === 'generate') await gateway.generate({ messages });
+      else await Array.fromAsync(gateway.stream({ messages }));
+    }, (error) => {
+      assert.equal(error.code, 'invalid_provider_response');
+      assert.equal(error.cause, undefined);
+      assert.equal(error.message.includes('sensitive-invalid-json-fixture'), false);
+      return true;
+    });
+  }
+});

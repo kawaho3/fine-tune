@@ -38,3 +38,13 @@ The obsolete compatibility pointer is retained under
 vision-location decision above; upstream quarantine, inert snapshots, explicit
 test discovery and redirect rejection are unchanged. This location-only pass runs
 no tests; earlier evidence above applies to its original baseline.
+
+## Recovery amendment — 18 November 2026
+
+The latest request authorizes safe testing. Root discovery now scopes globs to
+maintained component and runtime-unit test directories, so new files in those
+owners are included without searching preserved archives. The corresponding
+Python/archive and Playwright suites are explicit separate commands in CI.
+[ADR 0007](0007-source-export-and-readiness-gates.md) records current export and
+execution-prerequisite boundaries. Earlier date-specific restrictions above are
+historical, not current instructions.

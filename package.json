@@ -15,7 +15,13 @@
   "scripts": {
     "dev": "node apps/builder-api/src/server.mjs",
     "start": "node apps/builder-api/src/server.mjs",
-    "test": "node --test apps/builder-api/test/app.test.mjs packages/project-generator/test/core.test.mjs services/agent-adapter/test/agent.test.mjs services/model-gateway/test/model-gateway.test.mjs",
-    "check": "npm test"
+    "test": "node --test apps/builder-api/test/*.test.mjs packages/project-generator/test/*.test.mjs services/agent-adapter/test/*.test.mjs services/model-gateway/test/*.test.mjs tests/runtime/*.test.mjs",
+    "check": "npm test && npm run test:recovery && npm run test:browser",
+    "test:browser": "playwright test",
+    "test:recovery": "python3 -m unittest discover -s tests/recovery -p 'test_*.py'",
+    "check:sandbox": "node tools/runtime/check-docker.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
   }
 }

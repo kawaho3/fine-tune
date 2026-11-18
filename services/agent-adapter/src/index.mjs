@@ -1,6 +1,7 @@
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 const MAX_ITERATIONS = 200;
 const MAX_MESSAGE_CHARS = 100_000;
+const MAX_RESPONSE_BYTES = 1024 * 1024;
 
 export class AgentAdapterError extends Error {
   constructor(message, { code = 'agent_error', status = null, retryable = false, cause } = {}) {
@@ -109,13 +110,36 @@ function mapError(error, callerSignal, timedOut = false) {
   return new AgentAdapterError('OpenHands Agent Server is unavailable.', { code: 'transport_error', retryable: true, cause: error });
 }
 
-async function parseBody(response) {
-  const text = await response.text();
+async function parseBody(response, signal) {
+  if (!response.body) return null;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let bytes = 0, text = '', ended = false;
+  const cancel = () => { void reader.cancel().catch(() => {}); };
+  signal?.addEventListener('abort', cancel, { once: true });
+  try {
+    if (signal?.aborted) throw abortError();
+    while (true) {
+      const chunk = await reader.read();
+      if (signal?.aborted) throw abortError();
+      if (chunk.done) { ended = true; break; }
+      bytes += chunk.value.byteLength;
+      if (bytes > MAX_RESPONSE_BYTES) {
+        throw new AgentAdapterError('OpenHands response exceeded the byte limit.', { code: 'response_too_large', status: response.status });
+      }
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    text += decoder.decode();
+  } finally {
+    signal?.removeEventListener('abort', cancel);
+    if (!ended) cancel();
+    reader.releaseLock();
+  }
   if (!text) return null;
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
     try { return JSON.parse(text); }
-    catch (cause) { throw new AgentAdapterError('OpenHands returned malformed JSON.', { code: 'invalid_response', status: response.status, cause }); }
+    catch { throw new AgentAdapterError('OpenHands returned malformed JSON.', { code: 'invalid_response', status: response.status }); }
   }
   return text;
 }
@@ -152,17 +176,16 @@ export class OpenHandsAgentServerAdapter {
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         signal: abort.signal,
       }), abort.signal);
-      data = await waitForSignal(() => parseBody(response), abort.signal);
+      data = await waitForSignal(() => parseBody(response, abort.signal), abort.signal);
     } catch (error) {
       throw mapError(error, signal, abort.timedOut());
     } finally {
       abort.cleanup();
     }
     if (!response.ok) {
-      const detail = data && typeof data === 'object' && !Array.isArray(data) ? data.detail : null;
       const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
       throw new AgentAdapterError(
-        typeof detail === 'string' && detail.trim() ? detail : `OpenHands request failed with HTTP ${response.status}.`,
+        `OpenHands request failed with HTTP ${response.status}.`,
         { code: response.status === 409 ? 'busy' : 'server_error', status: response.status, retryable },
       );
     }
